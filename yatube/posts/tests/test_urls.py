@@ -118,16 +118,3 @@ class PostURLTests(TestCase):
         self.assertRedirects(response, reverse(
             'posts:post_detail', args=[self.post.id]
         ))
-
-    def test_only_authorized_users_can_comment(self):
-        """Проверка, что авторизованные пользователи
-         могут комментировать посты."""
-
-        response = self.authorized_client.get(reverse(
-            'posts:add_comment',
-            args=[self.post.id])
-        )
-        self.assertRedirects(
-            response,
-            reverse('posts:post_detail', args=[self.post.id])
-        )

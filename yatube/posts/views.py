@@ -45,7 +45,12 @@ def profile(request, username):
     author = get_object_or_404(User, username=username)
     posts = author.posts.all()
     page_obj = page_pagination(request, posts, NUMBER_OF_POSTS_ON_PAGE)
-    following = author.following.exists()
+
+    following = False
+    if request.user.is_authenticated:
+        following = Follow.objects.filter(
+            user=request.user,
+            author=author).exists()
 
     context = {
         'author': author,
@@ -108,11 +113,7 @@ def post_edit(request, post_id):
     form = PostForm(
         request.POST or None,
         instance=post,
-        files=request.FILES or None,
-        initial={
-            'text': post.text,
-            'group': post.group
-        })
+        files=request.FILES or None)
 
     if form.is_valid():
         form.save()
@@ -160,12 +161,14 @@ def profile_follow(request, username):
     """Оформление подписки на автора."""
 
     author = get_object_or_404(User, username=username)
-    if not (author.following.exists() or author == request.user):
-        follow = Follow(
+    following = Follow.objects.filter(
+        user=request.user,
+        author=author).exists()
+    if not (following or author == request.user):
+        Follow(
             user=request.user,
             author=get_object_or_404(User, username=username)
-        )
-        follow.save()
+        ).save()
 
     return redirect('posts:profile', username=username)
 
@@ -175,7 +178,6 @@ def profile_unfollow(request, username):
     """Отписка от автора."""
 
     author = get_object_or_404(User, username=username)
-    if author.following.exists():
-        Follow.objects.filter(user=request.user, author=author).delete()
+    Follow.objects.filter(user=request.user, author=author).delete()
 
     return redirect('posts:profile', username=username)

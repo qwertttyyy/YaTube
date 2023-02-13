@@ -6,7 +6,7 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase, Client, override_settings
 from django.urls import reverse
 
-from ..models import Post, User, Group
+from ..models import Post, User, Group, Comment
 
 TEMP_MEDIA_ROOT = tempfile.mkdtemp(dir=settings.BASE_DIR)
 
@@ -23,6 +23,13 @@ class PostCreateFormTests(TestCase):
             title='Тестовая группа',
             slug='test-slug',
             description='Тестовое описание',
+        )
+        cls.small_gif = (
+            b'\x47\x49\x46\x38\x39\x61\x01\x00'
+            b'\x01\x00\x00\x00\x00\x21\xf9\x04'
+            b'\x01\x0a\x00\x01\x00\x2c\x00\x00'
+            b'\x00\x00\x01\x00\x01\x00\x00\x02'
+            b'\x02\x4c\x01\x00\x3b'
         )
 
     @classmethod
@@ -41,16 +48,9 @@ class PostCreateFormTests(TestCase):
 
         posts_ids = list(Post.objects.values_list('id', flat=True))
 
-        small_gif = (
-            b'\x47\x49\x46\x38\x39\x61\x01\x00'
-            b'\x01\x00\x00\x00\x00\x21\xf9\x04'
-            b'\x01\x0a\x00\x01\x00\x2c\x00\x00'
-            b'\x00\x00\x01\x00\x01\x00\x00\x02'
-            b'\x02\x4c\x01\x00\x3b'
-        )
         uploaded = SimpleUploadedFile(
             name='small.gif',
-            content=small_gif,
+            content=self.small_gif,
             content_type='image/gif'
         )
 
@@ -106,3 +106,37 @@ class PostCreateFormTests(TestCase):
             'posts:post_detail',
             args=[edited_post.id]
         ))
+
+    def test_only_authorized_users_can_comment(self):
+        """Проверка, что только авторизованные
+        пользователи могут комментировать посты."""
+
+        test_post = Post.objects.create(
+            text='test post comment',
+            author=self.user
+        )
+
+        comment_count = Comment.objects.count()
+
+        form_data = {
+            'text': 'test comment',
+            'post': test_post.id,
+        }
+
+        self.client.post(
+            reverse('posts:add_comment', args=[test_post.id]),
+            data=form_data,
+            follow=True
+        )
+
+        self.assertEqual(comment_count, Comment.objects.count())
+
+        self.authorized_client.post(
+            reverse('posts:add_comment', args=[test_post.id]),
+            data=form_data,
+            follow=True
+        )
+
+        self.assertEqual(comment_count + 1, Comment.objects.count())
+        comment = Comment.objects.all()[0]
+        self.assertEqual(comment.post, test_post)
