@@ -54,6 +54,15 @@ class PostPagesTest(TestCase):
         self.authorized_client.force_login(self.user)
         self.authorized_client_2.force_login(self.user2)
 
+    def post_testing(self, post):
+        """Вспомогательный метод для тестирования атрибутов поста."""
+
+        self.assertEqual(post.id, self.post.id)
+        self.assertEqual(post.text, self.post.text)
+        self.assertEqual(post.author, self.post.author)
+        self.assertEqual(post.group, self.post.group)
+        self.assertEqual(post.image, self.post.image)
+
     def test_pages_uses_correct_template(self):
         """Проверка, что во view-функциях
         используются правильные html-шаблоны.
@@ -88,11 +97,7 @@ class PostPagesTest(TestCase):
 
         response = self.authorized_client.get(reverse('posts:index'))
         posts = response.context['page_obj'].object_list
-        self.assertEqual(posts[0].id, self.post.id)
-        self.assertEqual(posts[0].text, self.post.text)
-        self.assertEqual(posts[0].author, self.post.author)
-        self.assertEqual(posts[0].group, self.post.group)
-        self.assertEqual(posts[0].image, self.post.image)
+        self.post_testing(posts[0])
 
     def test_group_list_page_show_correct_context(self):
         """Проверка контекста для страницы group_list."""
@@ -105,11 +110,7 @@ class PostPagesTest(TestCase):
             len(posts),
             Post.objects.filter(group=self.group).count()
         )
-        self.assertEqual(posts[0].id, self.post.id)
-        self.assertEqual(posts[0].text, self.post.text)
-        self.assertEqual(posts[0].author, self.post.author)
-        self.assertEqual(posts[0].group, self.post.group)
-        self.assertEqual(posts[0].image, self.post.image)
+        self.post_testing(posts[0])
 
         contex_group = response.context['group']
         self.assertEqual(contex_group.id, self.group.id)
@@ -128,14 +129,17 @@ class PostPagesTest(TestCase):
         )
         posts = response.context['page_obj'].object_list
         self.assertEqual(len(posts), self.user.posts.all().count())
-        self.assertEqual(posts[0].id, self.post.id)
-        self.assertEqual(posts[0].text, self.post.text)
-        self.assertEqual(posts[0].author, self.post.author)
-        self.assertEqual(posts[0].group, self.post.group)
-        self.assertEqual(posts[0].image, self.post.image)
+        self.post_testing(posts[0])
 
         author = response.context['author']
         self.assertEqual(author.username, self.user.username)
+
+        Follow.objects.create(user=self.user, author=self.user2)
+        context_following = response.context['following']
+        following = Follow.objects.filter(
+            user=self.user,
+            author=author).exists()
+        self.assertEqual(context_following, following)
 
     def test_post_detail_page_correct_context(self):
         """Проверка контекста для страницы post_detail."""
@@ -144,12 +148,17 @@ class PostPagesTest(TestCase):
             reverse('posts:post_detail', kwargs={'post_id': f'{self.post.id}'})
         )
         context_post = response.context['post']
-        self.assertEqual(context_post, self.post)
-        self.assertEqual(context_post.id, self.post.id)
-        self.assertEqual(context_post.text, self.post.text)
-        self.assertEqual(context_post.author, self.post.author)
-        self.assertEqual(context_post.group, self.post.group)
-        self.assertEqual(context_post.image, self.post.image)
+        self.post_testing(context_post)
+
+        comment = Comment.objects.create(
+            text='test post with comment',
+            author=self.user,
+            post=self.post
+        )
+        user_comment = response.context['comments'].get(id=comment.id)
+        self.assertEqual(comment.text, user_comment.text)
+        self.assertEqual(comment.author, user_comment.author)
+        self.assertEqual(comment.post, user_comment.post)
 
     def test_create_post_page_correct_context(self):
         """Проверка формы на странице post_create."""
@@ -216,22 +225,6 @@ class PostPagesTest(TestCase):
             Post.objects.filter(group__in=groups_without_post)
         )
 
-    def test_comment_shows_on_page(self):
-        """Проверка, что комментарий отображается на странице post_detail."""
-
-        comment = Comment.objects.create(
-            text='test post with comment',
-            author=self.user,
-            post=self.post
-        )
-        response = self.authorized_client.get(
-            reverse('posts:post_detail', kwargs={'post_id': f'{self.post.id}'})
-        )
-        user_comment = response.context['comments'].get(id=comment.id)
-        self.assertEqual(comment.text, user_comment.text)
-        self.assertEqual(comment.author, user_comment.author)
-        self.assertEqual(comment.post, user_comment.post)
-
     def test_index_cached(self):
         """Проверка кеширования страницы index."""
 
@@ -258,31 +251,37 @@ class PostPagesTest(TestCase):
             response_after_cache_clear.content
         )
 
-    def test_user_can_follow_and_unfollow(self):
+    def test_user_can_follow(self):
         """Проверка, что пользователь может
         подписываться на других пользователей."""
 
-        response = self.authorized_client.get(reverse(
+        follows_before = list(Follow.objects.values_list('id', flat=True))
+
+        self.authorized_client.get(reverse(
             'posts:profile_follow',
             args=[self.user2.username]
         ))
-        self.assertRedirects(response, reverse(
-            'posts:profile',
-            args=[self.user2.username]
-        ))
-        follow = Follow.objects.get(user=self.user, author=self.user2)
-        self.assertEqual(follow.user, self.user)
-        self.assertEqual(follow.author, self.user2)
 
-        response = self.authorized_client.get(reverse(
+        follows = Follow.objects.exclude(id__in=follows_before)
+        self.assertEqual(follows[0].user, self.user)
+        self.assertEqual(follows[0].author, self.user2)
+        self.assertEqual(len(follows), len(follows_before) + 1)
+
+    def test_user_can_unfollow(self):
+        """Проверка, что пользователь может
+        отписываться от других пользователей."""
+
+        follow = Follow.objects.create(user=self.user, author=self.user2)
+        follows_before = list(Follow.objects.values_list('id', flat=True))
+
+        self.authorized_client.get(reverse(
             'posts:profile_unfollow',
             args=[self.user2.username]
         ))
-        self.assertRedirects(response, reverse(
-            'posts:profile',
-            args=[self.user2.username]
-        ))
-        self.assertNotIn(follow, Follow.objects.all())
+
+        follows = Follow.objects.exclude(id__in=follows_before)
+        self.assertNotIn(follow, follows)
+        self.assertEqual(len(follows), len(follows_before) - 1)
 
     def test_new_post_in_follower_feed(self):
         """Новая запись появляется в ленте подписчиков."""

@@ -23,4 +23,9 @@
   </p>
   <p>{{ post.text|linebreaksbr }}</p>
   <a href="{% url 'posts:post_detail' post.id %}">подробная информация </a>
+  {% if post.group and request.resolver_match.view_name != 'posts:group_list'%}
+    <p>
+      <a href="{% url 'posts:group_list' post.group.slug %}">все записи группы</a>
+    </p>
+  {% endif %}
 </article>
