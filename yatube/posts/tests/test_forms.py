@@ -116,20 +116,10 @@ class PostCreateFormTests(TestCase):
             author=self.user
         )
 
-        # comment_count = Comment.objects.count()
-
         form_data = {
             'text': 'test comment',
             'post': test_post.id,
         }
-
-        # self.client.post(
-        #     reverse('posts:add_comment', args=[test_post.id]),
-        #     data=form_data,
-        #     follow=True
-        # )
-
-        # self.assertEqual(comment_count, Comment.objects.count())
 
         comments_ids = list(test_post.comments.values_list('id', flat=True))
 
@@ -167,4 +157,3 @@ class PostCreateFormTests(TestCase):
         )
 
         self.assertEqual(comment_count, Comment.objects.count())
-
