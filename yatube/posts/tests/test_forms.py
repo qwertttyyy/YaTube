@@ -108,8 +108,45 @@ class PostCreateFormTests(TestCase):
         ))
 
     def test_only_authorized_users_can_comment(self):
-        """Проверка, что только авторизованные
+        """Проверка, что авторизованные
         пользователи могут комментировать посты."""
+
+        test_post = Post.objects.create(
+            text='test post comment',
+            author=self.user
+        )
+
+        # comment_count = Comment.objects.count()
+
+        form_data = {
+            'text': 'test comment',
+            'post': test_post.id,
+        }
+
+        # self.client.post(
+        #     reverse('posts:add_comment', args=[test_post.id]),
+        #     data=form_data,
+        #     follow=True
+        # )
+
+        # self.assertEqual(comment_count, Comment.objects.count())
+
+        comments_ids = list(test_post.comments.values_list('id', flat=True))
+
+        self.authorized_client.post(
+            reverse('posts:add_comment', args=[test_post.id]),
+            data=form_data,
+            follow=True
+        )
+
+        comments = Comment.objects.exclude(id__in=comments_ids)
+        self.assertEqual(len(comments), 1)
+        self.assertEqual(comments[0].text, form_data['text'])
+        self.assertEqual(comments[0].post, test_post)
+        self.assertEqual(comments[0].author, self.user)
+
+    def test_guests_can_not_comment(self):
+        """Проверка, что гости не могут комментировать посты."""
 
         test_post = Post.objects.create(
             text='test post comment',
@@ -131,12 +168,3 @@ class PostCreateFormTests(TestCase):
 
         self.assertEqual(comment_count, Comment.objects.count())
 
-        self.authorized_client.post(
-            reverse('posts:add_comment', args=[test_post.id]),
-            data=form_data,
-            follow=True
-        )
-
-        self.assertEqual(comment_count + 1, Comment.objects.count())
-        comment = Comment.objects.all()[0]
-        self.assertEqual(comment.post, test_post)
