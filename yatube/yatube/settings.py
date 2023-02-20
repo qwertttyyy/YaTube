@@ -14,6 +14,8 @@ ALLOWED_HOSTS = [
     '127.0.0.1',
     '[::1]',
     'testserver',
+    'www.qwerttty.pythonanywhere.com',
+    'qwerttty.pythonanywhere.com'
 ]
 
 CACHES = {
@@ -41,7 +43,12 @@ INSTALLED_APPS = [
     'users.apps.UsersConfig',
     'core.apps.CoreConfig',
     'about.apps.AboutConfig',
-    'sorl.thumbnail'
+    'sorl.thumbnail',
+    'debug_toolbar',
+]
+
+INTERNAL_IPS = [
+    '127.0.0.1',
 ]
 
 MIDDLEWARE = [
@@ -52,6 +59,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'debug_toolbar.middleware.DebugToolbarMiddleware',
 ]
 
 STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static')]

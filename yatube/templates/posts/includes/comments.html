@@ -16,16 +16,11 @@
 {% endif %}
 
 {% for comment in comments %}
-  <div class="media mb-4">
+  <div class="media my-4">
     <div class="media-body">
-      <h5 class="mt-0">
-        <a href="{% url 'posts:profile' comment.author.username %}">
-          {{ comment.author.username }}
-        </a>
-      </h5>
-      <p>
-        {{ comment.text }}
-      </p>
+      <a class="mt-0 h5" href="{% url 'posts:profile' post.author.username %}">{{ comment.author.username }}</a>
+      <p>{{ comment.text }}</p>
+      <p class="small text-muted">{{ comment.created|date:'d E Y' }}</p>
     </div>
   </div>
 {% endfor %}

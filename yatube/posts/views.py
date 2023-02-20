@@ -13,7 +13,7 @@ def index(request):
     """Рендер главной страницы со списком всех постов."""
 
     template = 'posts/index.html'
-    posts = Post.objects.select_related('group')
+    posts = Post.objects.select_related('author', 'group')
     page_obj = page_pagination(request, posts, NUMBER_OF_POSTS_ON_PAGE)
 
     context = {
@@ -28,7 +28,7 @@ def group_posts(request, slug):
 
     template = 'posts/group_list.html'
     group = get_object_or_404(Group, slug=slug)
-    posts = group.posts.all()
+    posts = group.posts.select_related('author')
     page_obj = page_pagination(request, posts, NUMBER_OF_POSTS_ON_PAGE)
 
     context = {
@@ -43,7 +43,7 @@ def profile(request, username):
     """Рендер страницы профиля пользователя."""
 
     author = get_object_or_404(User, username=username)
-    posts = author.posts.all()
+    posts = author.posts.select_related('group')
     page_obj = page_pagination(request, posts, NUMBER_OF_POSTS_ON_PAGE)
 
     following = False
@@ -149,7 +149,9 @@ def add_comment(request, post_id):
 def follow_index(request):
     """Рендер страницы с постами избранных авторов."""
 
-    posts = Post.objects.filter(author__following__user=request.user)
+    posts = Post.objects.filter(
+        author__following__user=request.user
+    ).select_related('author')
     page_obj = page_pagination(request, posts, NUMBER_OF_POSTS_ON_PAGE)
     context = {'page_obj': page_obj}
 
