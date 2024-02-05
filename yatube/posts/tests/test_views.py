@@ -54,15 +54,6 @@ class PostPagesTest(TestCase):
         self.authorized_client.force_login(self.user)
         self.authorized_client_2.force_login(self.user2)
 
-    def post_testing(self, post):
-        """Вспомогательный метод для тестирования атрибутов поста."""
-
-        self.assertEqual(post.id, self.post.id)
-        self.assertEqual(post.text, self.post.text)
-        self.assertEqual(post.author, self.post.author)
-        self.assertEqual(post.group, self.post.group)
-        self.assertEqual(post.image, self.post.image)
-
     def test_pages_uses_correct_template(self):
         """Проверка, что во view-функциях
         используются правильные html-шаблоны.
@@ -91,6 +82,15 @@ class PostPagesTest(TestCase):
             with self.subTest(reverse_name=reverse_name):
                 response = self.authorized_client.get(reverse_name)
                 self.assertTemplateUsed(response, template)
+
+    def post_testing(self, post):
+        """Вспомогательный метод для тестирования атрибутов поста."""
+
+        self.assertEqual(post.id, self.post.id)
+        self.assertEqual(post.text, self.post.text)
+        self.assertEqual(post.author, self.post.author)
+        self.assertEqual(post.group, self.post.group)
+        self.assertEqual(post.image, self.post.image)
 
     def test_index_page_show_correct_context(self):
         """Проверка контекста для страницы index."""
@@ -203,15 +203,6 @@ class PostPagesTest(TestCase):
 
     def test_created_post_not_in_wrong_groups(self):
         """Проверка, что пост не попадает в неверную группу."""
-
-        self.authorized_client.post(
-            reverse('posts:post_create'),
-            data={
-                'text': 'Test post not wrong group',
-                'group': self.group.id
-            },
-            follow=True
-        )
 
         new_post = Post.objects.create(
             text='Тестовый пост',

@@ -1,29 +1,74 @@
 {% load thumbnail %}
+<style>
+  .card {
+    overflow: hidden;
+    border-radius: 15px; /* Скругленные углы */
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1); /* Тень карточки */
+    transition: transform 0.2s ease-in-out; /* Анимация */
+  }
+  .card:hover {
+    transform: scale(1.02); /* Эффект при наведении */
+  }
+  .card-img-top {
+    width: 100%;
+    height: auto;
+    object-fit: cover; /* Обрезка изображения */
+  }
+  .card-body {
+    padding: 20px;
+  }
+  .card-title {
+    margin-bottom: 15px;
+    color: #333; /* Темно-серый цвет текста */
+  }
+  .card-text {
+    color: #666; /* Серый цвет текста */
+    margin-bottom: 15px;
+  }
+  .btn-primary, .btn-secondary {
+    margin-right: 5px;
+  }
+  .text-muted {
+    color: #999; /* Светло-серый цвет текста */
+  }
+  a {
+    text-decoration: none;
+    color: inherit; /* Переопределение стилей ссылок */
+  }
+  a:hover {
+    color: #007bff; /* Цвет при наведении */
+  }
+</style>
+
 <article class="card shadow mb-3">
-  {% thumbnail post.image "960x339" crop="center" upscale=True as im %}
-    <img class="card-img-top" src="{{ im.url }}">
-  {% endthumbnail %}
+  <a href="{% url 'posts:post_detail' post.id %}">
+    {% thumbnail post.image "960x339" crop="center" upscale=True as im %}
+      <img class="card-img-top" src="{{ im.url }}" alt="{{ post.title }}">
+    {% endthumbnail %}
+  </a>
   <div class="card-body">
     <h5 class="card-title">{{ post.title }}</h5>
     <p class="card-text">{{ post.text|linebreaksbr }}</p>
-    <ul class="list-unstyled">
-      <li>
-        <small class="text-muted">Автор:
-        {% if post.author.get_full_name %}
-          {{ post.author.get_full_name }}
-        {% else %}
-          {{ post.author.username }}
-        {% endif %}
-        </small>
-        {% if not request.resolver_match.view_name == 'posts:profile' %}
-          <a href="{% url 'posts:profile' post.author.username %}">все посты пользователя</a>
-        {% endif %}
-      </li>
-      <li><small class="text-muted">Дата публикации: {{ post.created|date:'d E Y' }}</small></li>
-    </ul>
+    <div class="post-meta">
+      <ul class="list-unstyled">
+        <li>
+          <small class="text-muted">Автор:
+          {% if post.author.get_full_name %}
+            {{ post.author.get_full_name }}
+          {% else %}
+            {{ post.author.username }}
+          {% endif %}
+          </small>
+          {% if not request.resolver_match.view_name == 'posts:profile' %}
+            <a href="{% url 'posts:profile' post.author.username %}" class="author-posts-link">все посты пользователя</a>
+          {% endif %}
+        </li>
+        <li><small class="text-muted">Дата публикации: {{ post.created|date:'d E Y' }}</small></li>
+      </ul>
+    </div>
     <a href="{% url 'posts:post_detail' post.id %}" class="btn btn-primary">Подробнее</a>
     {% if post.group and request.resolver_match.view_name != 'posts:group_list' %}
-      <a href="{% url 'posts:group_list' post.group.slug %}" class="btn btn-secondary">Все записи группы</a>
+      <a href="{% url 'posts:group_list' post.group.slug %}" class="btn btn-secondary">{{ post.group }}</a>
     {% endif %}
   </div>
 </article>

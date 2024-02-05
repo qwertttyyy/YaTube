@@ -1,8 +1,8 @@
-from django.db import models
 from django.contrib.auth import get_user_model
+from django.db import models
 
-from .constants import MAX_GROUP_TITLE_LENGTH, POST_SYMBOLS_LIMIT
 from core.models import CreatedModel
+from .constants import MAX_GROUP_TITLE_LENGTH, POST_SYMBOLS_LIMIT
 
 User = get_user_model()
 
@@ -91,3 +91,6 @@ class Follow(models.Model):
         on_delete=models.CASCADE,
         related_name='following',
     )
+
+    class Meta:
+        unique_together = ('user', 'author')
